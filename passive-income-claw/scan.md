@@ -1,9 +1,12 @@
-# Scan & Push Flow
+# Scan Flow
+
+Default behavior: scan ALL feasible strategies, calculate real numbers, sort by net yield, present everything. Don't filter by subjective preferences — show data, let user decide.
 
 ## Triggers
 
-- **Scheduled**: cron job (recommended: every 4 hours, e.g. `0 1,5,9,13,17,21 * * *`)
-- **Condition-based triggers are implemented through frequent scheduled scans.** Each scan checks for changes via snapshot diff. No push if nothing changed, so frequent scans are safe and non-intrusive.
+- Cron job (recommended: every 4 hours)
+- User asks "what's available" / "scan" / "recommend"
+- First scan after setup
 
 ## Flow
 
@@ -13,106 +16,112 @@
 node {baseDir}/bin/profile.ts reset-daily
 ```
 
-### 1. Load User Profile
+### 1. Gather Data (parallel)
 
 ```bash
-node {baseDir}/bin/profile.ts dump
-```
+# Holdings
+node {baseDir}/bin/earn-api.ts balance
 
-Extract: `main_holdings`, `risk_preference`, `liquidity_requirement`, `holding_restriction`, `change_threshold`, `push_frequency`.
-
-### 2. Fetch Market Data
-
-Call in parallel:
-
-```bash
-# Earn products
+# All earn products
 node {baseDir}/bin/earn-api.ts list-flexible --size 50
 node {baseDir}/bin/earn-api.ts list-locked --size 50
-```
 
-Also call **Market Ranking skill** and **Trading Signals skill** for market context (reference only).
+# Existing earn positions
+node {baseDir}/bin/earn-api.ts positions --type flexible
+node {baseDir}/bin/earn-api.ts positions --type locked
 
-### 3. Match & Filter
-
-Filter product list against user profile:
-- Risk level matches risk_preference
-- Required asset is in user's holdings or asset_whitelist (if holding_restriction is no-sell, exclude products requiring a swap)
-- Liquidity matches liquidity_requirement (high liquidity → prefer flexible, exclude long lock-ups)
-- Sort by yield, keep top 3-5 candidates
-
-**Zero candidates**: if no products match the user's profile, update `last_scan_time` and end. Do not push. In auto mode, skip execution entirely.
-
-**Borrow-to-earn candidates**: if `margin-borrow` is in `allowed_operations` and `risk_preference` is not `conservative`, also check for products the user doesn't hold but could borrow for:
-
-```bash
-# Get borrow rates for potential assets
-node {baseDir}/bin/margin-api.ts interest-rate --assets USDT,BTC,ETH
-
-# Check current margin account health
+# Margin rates (if margin-borrow in allowed_operations)
+node {baseDir}/bin/margin-api.ts interest-rate --assets USDT,BTC,ETH,BNB
 node {baseDir}/bin/margin-api.ts account
 ```
 
-Include a product as borrow-to-earn candidate only if:
-- Earn APY minus annualized borrow rate > 2% (annualize: `hourlyRate * 24 * 365`)
-- The collateral asset is in user's holdings
-- Current margin level from `margin-api.ts account` is > 2.0 (if no existing borrows, check `borrowEnabled: true`)
+Use **Binance Spot skill** for current prices (USDT valuation).
 
-Mark these products with `[borrow-to-earn]` in the push message.
+### 2. Generate ALL Candidate Strategies
+
+For each earn product, evaluate every feasible path:
+
+**Path A — Direct Earn**: user holds the required asset
+- Feasibility: `balance[asset] > product.minPurchaseAmount`
+- Net yield: product APY (no cost)
+- Lock period: flexible (0) or fixed (N days)
+- Risk: low (earn product risk only)
+
+**Path B — Borrow-to-Earn**: user doesn't hold the asset but can borrow it
+- Feasibility: `margin-borrow` in allowed_operations AND asset is borrowable AND `maxBorrowable > minPurchaseAmount`
+- Earn APY: product APY
+- Borrow cost: `hourlyInterestRate × 24 × 365` (annualized)
+- Net yield: Earn APY − Borrow APY
+- Collateral: user's current holdings
+- Margin level impact: estimate post-borrow margin level
+- Risk: medium-high (liquidation, variable borrow rate)
+
+**Skip if**:
+- Product is sold out (`isSoldOut: true` or `canPurchase: false`)
+- Net yield for borrow path is negative
+
+### 3. Score & Sort
+
+For each candidate, compute a composite score:
+
+```
+score = net_yield
+        - (lock_days > 0 ? 0.5 : 0)          // liquidity penalty
+        - (path == "borrow" ? 1.0 : 0)        // complexity/risk penalty
+        - (margin_level_after < 3.0 ? 2.0 : 0) // leverage risk penalty
+```
+
+Sort by score descending. Group into tiers:
+
+| Tier | Criteria |
+|------|----------|
+| **Recommended** | score > 0, direct earn or borrow with net yield > 2% |
+| **Possible** | score > 0 but low net yield or long lock |
+| **Not worth it** | net yield < 1% or negative after costs |
+| **Too risky** | margin level would drop below 2.0 |
 
 ### 4. Snapshot Comparison
 
-Pipe the filtered candidates (as JSON array) into the snapshot diff tool:
-
 ```bash
-echo '[{"name":"BNB Flexible","apy":5.4,...}, ...]' | node {baseDir}/bin/snapshot.ts diff --threshold 0.5
+echo '<candidates JSON>' | node {baseDir}/bin/snapshot.ts diff --threshold 0.5
 ```
 
-Output:
-```json
-{
-  "changes": [
-    {"name": "BNB Flexible", "type": "new", "apy": 5.4, "marker": "✅ New"},
-    {"name": "USDT Locked 30d", "type": "changed", "old_apy": 7.1, "new_apy": 8.2, "delta": 1.1, "marker": "↑"}
-  ],
-  "removed": [],
-  "has_changes": true
-}
-```
-
-- `has_changes: false` → **do not push**, update scan time only, end
+- `has_changes: false` → no push, update scan time, end
 - `has_changes: true` → continue
 
-**push_frequency handling** (check before pushing):
-- `every-4h` → push on every scan that detects changes (default)
-- `daily` → push at most once per day; if already pushed today (check snapshot `updated_at` date), skip
-- `important-only` → only push when `type` is `"new"` or `delta` exceeds 2x `change_threshold`
+**push_frequency handling**:
+- `every-4h` → push on every change (default)
+- `daily` → at most once per day
+- `important-only` → only new products or yield delta > 2x threshold
 
-### 5. Generate Push Message
+### 5. Generate Output
 
-Use the diff output to compose a push message. Fixed format, 1-3 items:
+Present ALL tiers, not just "recommended". User sees the full picture.
 
 ```
-[Earn Opportunity Alert]
-Based on your profile ([risk_preference] / [main_holdings] holdings), found N opportunity(ies):
+📊 Passive Income Scan — [timestamp]
+Holdings: BNB 12.5 (~8,250), USDT 3,200, BTC 0.02 (~1,960)
 
-1. [Product Name] — APY X.X%, [risk level], [liquidity] [marker]
-2. [Product Name] — APY X.X%, [change description] [marker]
+✅ Recommended:
+1. USDT Flexible Earn — 4.2% APY, direct, withdraw anytime
+2. BNB Flexible Earn — 3.8% APY, direct, withdraw anytime
+3. USDT Locked 30d — 8.2% APY, direct, locked 30 days
 
-Data as of [time]. Refer to actual platform page for final rates.
-To execute, just say: "Buy #1"
+💡 Possible (borrow-to-earn):
+4. [borrow] USDT Locked 90d — earn 9.5% − borrow 3.2% = net 6.3%, locked 90d
+   Collateral: BNB, margin level after: 4.1 (healthy)
+
+⚠️ Not worth it:
+5. BTC Locked 120d — 1.2% APY, long lock, low yield
+6. [borrow] ETH Flexible — earn 2.1% − borrow 2.8% = net -0.7%
+
+To execute: "buy #1" or "buy #1, 500 USDT"
 ```
 
 ### 6. Update Snapshot
 
-Pipe the full candidate list to update the snapshot:
-
 ```bash
-echo '[{"name":"BNB Flexible","type":"flexible","apy":5.4,"risk":"low",...}]' | node {baseDir}/bin/snapshot.ts update
-```
-
-Update scan time:
-```bash
+echo '<all candidates JSON>' | node {baseDir}/bin/snapshot.ts update
 node {baseDir}/bin/profile.ts set last_scan_time "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ```
 
@@ -122,15 +131,13 @@ node {baseDir}/bin/profile.ts set last_scan_time "$(date -u +%Y-%m-%dT%H:%M:%SZ)
 node {baseDir}/bin/profile.ts get confirmation_mode
 ```
 
-- **`confirm-first`** → flow ends. Wait for user to initiate execution.
-- **`auto`** → for each pushed opportunity, trigger the execution flow (`{baseDir}/execute.md`):
-  1. Determine amount: use product's `minPurchaseAmount` or derive from `single_amount_limit`
-  2. Run full authorization check via `auth-check.ts` (auto mode does NOT skip any check)
-  3. Convert amount if needed via **Binance Spot skill** (price query)
-  4. Execute via `earn-api.ts`
-  5. Log result via `log.ts`
-  6. If any execution fails, notify and continue to next opportunity
+- `confirm-first` → flow ends, wait for user
+- `auto` → execute only **Recommended** tier items:
+  1. Run `auth-check.ts` for each
+  2. Use **Binance Spot skill** for price conversion if needed
+  3. Execute via `earn-api.ts` (or `margin-api.ts` + `earn-api.ts` for borrow path)
+  4. Log via `log.ts`
+  5. Send result notification
+  6. If any fails, notify and continue to next
 
-## End
-
-Flow ends after push (confirm-first mode) or after auto-execution completes (auto mode).
+**Auto mode never executes "Possible", "Not worth it", or "Too risky" items.**

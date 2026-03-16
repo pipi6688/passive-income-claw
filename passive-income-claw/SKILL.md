@@ -20,61 +20,46 @@ This skill includes TypeScript scripts in `{baseDir}/bin/` for all deterministic
 | Script | Purpose |
 |--------|---------|
 | `bin/earn-api.ts` | Binance Earn API + **账户资产明细查询** (`balance` 命令) |
-| `bin/margin-api.ts` | Binance Cross Margin API client (借贷、还款、账户状态、利率) |
+| `bin/margin-api.ts` | Binance Cross Margin API (借贷、还款、账户状态、利率) |
 | `bin/profile.ts` | User profile read/write/daily-reset |
 | `bin/auth-check.ts` | 5-step authorization validation |
 | `bin/snapshot.ts` | Snapshot diff & update |
 | `bin/log.ts` | Execution log append & query |
 
-### Official Binance Skills (already installed, use directly)
+### Official Binance Skills (use for prices only)
 
 | Skill | 用途 |
 |-------|------|
 | **Binance Spot** | 行情价格查询、币种换算（**不要用 Spot 查余额，它只返回总额**） |
-| **Market Ranking** | 市场热度、涨跌幅排行（扫描时参考） |
+| **Market Ranking** | 市场热度（扫描时参考） |
 | **Trading Signals** | 买卖信号（扫描时参考） |
-| **Token Details** | Token 基本信息、价格、市值 |
+| **Token Details** | Token 基本信息、价格 |
 
-**查账户资产明细 → `node {baseDir}/bin/earn-api.ts balance`（返回每个资产的 free/locked/total）。**
-**查价格/行情 → Binance Spot skill。**
+**查账户资产明细 → `node {baseDir}/bin/earn-api.ts balance`**
+**查价格/行情 → Binance Spot skill**
 **不要用 Spot skill 查余额 — 它只返回 BTC 总额，没有资产明细。**
 
-All scripts output JSON to stdout (including `profile.ts get` and `set`). Errors go to stderr as JSON with non-zero exit code. All timestamps use UTC.
+All scripts output JSON to stdout. Errors go to stderr with non-zero exit code. All timestamps use UTC.
 
 ## Routing
 
 **First use** (`~/passive-income-claw/user-profile.md` does not exist):
-→ Read `{baseDir}/setup.md` to guide user through configuration, then return here
+→ Read `{baseDir}/setup.md`
 
-**User triggers execution** ("buy", "execute #N", "redeem"):
+**User triggers scan** ("scan", "what's available", "recommend", cron job):
+→ Read `{baseDir}/scan.md` — full-path scan: direct earn + borrow-to-earn, all candidates scored and sorted
+
+**User triggers execution** ("buy #1", "execute", "redeem"):
 → Read `{baseDir}/execute.md`
 
-**Scheduled scan triggered** (cron job):
-→ Read `{baseDir}/scan.md`
+**User asks about borrow-to-earn details** ("how does borrowing work", "explain #4"):
+→ Read `{baseDir}/path-analysis.md`
 
-**User asks about opportunities** ("what's available", "recommend something for me"):
-→ Load user profile: `node {baseDir}/bin/profile.ts dump`
-→ Query holdings: `node {baseDir}/bin/earn-api.ts balance`
-→ Fetch products: `node {baseDir}/bin/earn-api.ts list-flexible` and `list-locked`
-→ Output full recommendation:
-  1. Profile summary (current preferences and authorization limits)
-  2. Top 3-5 picks with reasoning, risk level, and liquidity
-  3. Configuration suggestions (1-3 preset strategies: conservative / balanced / yield-focused, each with concrete parameter values)
-  4. Risk explanation for each recommendation
-  5. If any pick requires an asset the user doesn't hold → run path analysis per `{baseDir}/path-analysis.md`
-  6. One-line summary
+**User wants to update settings** ("change my limit", "switch to auto"):
+→ `node {baseDir}/bin/profile.ts dump` → show current → collect changes → `profile.ts set`
 
-**User wants to update preferences** ("change my settings", "update risk preference", "raise my limit"):
-→ Show current values: `node {baseDir}/bin/profile.ts dump`
-→ Collect new values through natural conversation
-→ Update: `node {baseDir}/bin/profile.ts set <key> <value>`
-→ Confirm changes back to the user
-
-**User asks about asset mismatch or borrow-to-earn** ("I don't hold that asset", "how can I participate", "can I borrow to earn"):
-→ Read `{baseDir}/path-analysis.md` — includes feasibility check, risk analysis, and execution via `margin-api.ts`
-
-**User asks about execution history** ("what did you execute", "show my history"):
-→ Run `node {baseDir}/bin/log.ts recent 20`
-→ If no entries, tell the user: "No executions recorded yet."
+**User asks execution history** ("what did you execute"):
+→ `node {baseDir}/bin/log.ts recent 20`
+→ If no entries: "No executions recorded yet."
 
 **Before all write operations**: run `node {baseDir}/bin/auth-check.ts` first.

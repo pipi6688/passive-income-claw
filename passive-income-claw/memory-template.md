@@ -1,9 +1,5 @@
 # User Profile
-risk_preference: balanced          # conservative / balanced / yield-focused
-operation_frequency: low           # low / medium
-liquidity_requirement: high        # high / medium / low
-holding_restriction: no-sell       # no-sell / can-swap
-main_holdings: USDT                # BTC / ETH / BNB / USDT etc.
+main_holdings: []                 # auto-detected from account scan
 
 # Execution Authorization
 execution_enabled: false           # true / false
