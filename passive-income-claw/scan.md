@@ -70,7 +70,7 @@ node {baseDir}/bin/earn-api.ts list-locked --asset <profitable-asset-1>
 - Lock period: flexible (0) or fixed (N days)
 - Risk: low
 
-**Path B — Borrow-to-Earn** (for top-yield products the user doesn't hold):
+**Path B — Borrow-to-Earn** (for borrowable assets the user doesn't hold):
 - Only evaluate if `margin-borrow` in `allowed_operations`
 - Only for products where: earn APY > borrow APY (skip obviously unprofitable ones first)
 - Earn APY: product APY
@@ -80,10 +80,26 @@ node {baseDir}/bin/earn-api.ts list-locked --asset <profitable-asset-1>
 - Margin level impact: estimate post-borrow margin level
 - Risk: medium-high
 
+**Path C — Notable Opportunities** (global scan, regardless of holdings):
+Catch high-APY promotions the user might miss (e.g. new stablecoin at 20% APR).
+
+```bash
+# One call each — fetch top products globally, not per-asset
+node {baseDir}/bin/earn-api.ts list-flexible --size 50
+node {baseDir}/bin/earn-api.ts list-locked --size 50
+```
+
+From these results, flag products where:
+- APY is unusually high (> 5% for stablecoins, > 3% for others)
+- User does NOT already hold this asset
+- Product is not sold out
+
+Present these as: "You don't hold [asset], but [product] is offering [X]% APY — might be worth acquiring."
+
 **Skip if**:
 - Product is sold out (`isSoldOut: true` or `canPurchase: false`)
 - Net yield for borrow path < 0
-- Asset value < 10 USDT (dust)
+- Asset value < 10 USDT (dust, for Path A only)
 
 ### 3. Score & Sort
 
@@ -135,15 +151,19 @@ Holdings: BNB 12.5 (~8,250), USDT 3,200, BTC 0.02 (~1,960)
 2. BNB Flexible Earn — 3.8% APY, direct, withdraw anytime
 3. USDT Locked 30d — 8.2% APY, direct, locked 30 days
 
+🔥 Notable (you don't hold these, but APY is high):
+4. USD1 Flexible — 20% APY (promotional), you'd need to acquire USD1
+5. FDUSD Locked 7d — 12% APY, you'd need to acquire FDUSD
+
 💡 Possible (borrow-to-earn):
-4. [borrow] USDT Locked 90d — earn 9.5% − borrow 3.2% = net 6.3%, locked 90d
+6. [borrow] USDT Locked 90d — earn 9.5% − borrow 3.2% = net 6.3%, locked 90d
    Collateral: BNB, margin level after: 4.1 (healthy)
 
 ⚠️ Not worth it:
-5. BTC Locked 120d — 1.2% APY, long lock, low yield
-6. [borrow] ETH Flexible — earn 2.1% − borrow 2.8% = net -0.7%
+7. BTC Locked 120d — 1.2% APY, long lock, low yield
 
 To execute: "buy #1" or "buy #1, 500 USDT"
+For notable items: "how do I get USD1?" or "buy USD1 and subscribe #4"
 ```
 
 ### 6. Update Snapshot
