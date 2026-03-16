@@ -19,53 +19,84 @@ node {baseDir}/bin/profile.ts reset-daily
 ### 1. Gather Data (parallel)
 
 ```bash
-# Holdings
+# Holdings (per-asset breakdown)
 node {baseDir}/bin/earn-api.ts balance
-
-# All earn products
-node {baseDir}/bin/earn-api.ts list-flexible --size 50
-node {baseDir}/bin/earn-api.ts list-locked --size 50
 
 # Existing earn positions
 node {baseDir}/bin/earn-api.ts positions --type flexible
 node {baseDir}/bin/earn-api.ts positions --type locked
+```
 
-# Margin rates (if margin-borrow in allowed_operations)
-node {baseDir}/bin/margin-api.ts interest-rate --assets USDT,BTC,ETH,BNB
+Use **Binance Spot skill** to get current prices, calculate USDT value for each asset. **Filter: only keep assets with value > 10 USDT.** This is the user's effective portfolio.
+
+Then fetch earn products **only for the user's assets**:
+```bash
+# For each asset in effective portfolio (e.g. BNB, USDT, BTC):
+node {baseDir}/bin/earn-api.ts list-flexible --asset BNB
+node {baseDir}/bin/earn-api.ts list-flexible --asset USDT
+node {baseDir}/bin/earn-api.ts list-locked --asset BNB
+node {baseDir}/bin/earn-api.ts list-locked --asset USDT
+# ... etc for each held asset
+```
+
+For borrow-to-earn, **only scan stablecoins and major coins** (small altcoins too volatile, spread gets eaten by price swings):
+```bash
+# Only if margin-borrow in allowed_operations
+# Tier 1 — Stablecoins (lowest risk, most practical for borrow-to-earn):
+node {baseDir}/bin/earn-api.ts list-flexible --asset USDT
+node {baseDir}/bin/earn-api.ts list-flexible --asset USDC
+node {baseDir}/bin/earn-api.ts list-locked --asset USDT
+node {baseDir}/bin/earn-api.ts list-locked --asset USDC
+
+# Tier 2 — Major coins (only if user doesn't already hold them):
+node {baseDir}/bin/earn-api.ts list-flexible --asset BTC
+node {baseDir}/bin/earn-api.ts list-flexible --asset ETH
+node {baseDir}/bin/earn-api.ts list-flexible --asset BNB
+node {baseDir}/bin/earn-api.ts list-flexible --asset SOL
+
+# Borrow rates for these assets only
+node {baseDir}/bin/margin-api.ts interest-rate --assets USDT,USDC,BTC,ETH,BNB,SOL
 node {baseDir}/bin/margin-api.ts account
 ```
 
-Use **Binance Spot skill** for current prices (USDT valuation).
+**Do NOT scan altcoins/meme coins for borrow-to-earn.** Price volatility makes the spread meaningless.
 
-### 2. Generate ALL Candidate Strategies
+### 2. Generate Candidate Strategies
 
-For each earn product, evaluate every feasible path:
-
-**Path A — Direct Earn**: user holds the required asset
+**Path A — Direct Earn** (for each asset the user holds with value > 10 USDT):
+- Match against earn products for that asset
 - Feasibility: `balance[asset] > product.minPurchaseAmount`
 - Net yield: product APY (no cost)
 - Lock period: flexible (0) or fixed (N days)
-- Risk: low (earn product risk only)
+- Risk: low
 
-**Path B — Borrow-to-Earn**: user doesn't hold the asset but can borrow it
-- Feasibility: `margin-borrow` in allowed_operations AND asset is borrowable AND `maxBorrowable > minPurchaseAmount`
+**Path B — Borrow-to-Earn** (for top-yield products the user doesn't hold):
+- Only evaluate if `margin-borrow` in `allowed_operations`
+- Only for products where: earn APY > borrow APY (skip obviously unprofitable ones first)
 - Earn APY: product APY
 - Borrow cost: `hourlyInterestRate × 24 × 365` (annualized)
 - Net yield: Earn APY − Borrow APY
 - Collateral: user's current holdings
 - Margin level impact: estimate post-borrow margin level
-- Risk: medium-high (liquidation, variable borrow rate)
+- Risk: medium-high
 
 **Skip if**:
 - Product is sold out (`isSoldOut: true` or `canPurchase: false`)
-- Net yield for borrow path is negative
+- Net yield for borrow path < 0
+- Asset value < 10 USDT (dust)
 
 ### 3. Score & Sort
 
 For each candidate, compute a composite score:
 
 ```
+Asset tier bonus:
+  stablecoin (USDT, USDC, FDUSD, DAI, BUSD) → +1.0
+  major (BTC, ETH, BNB, SOL)                 → +0.5
+  other                                       → +0.0
+
 score = net_yield
+        + asset_tier_bonus
         - (lock_days > 0 ? 0.5 : 0)          // liquidity penalty
         - (path == "borrow" ? 1.0 : 0)        // complexity/risk penalty
         - (margin_level_after < 3.0 ? 2.0 : 0) // leverage risk penalty

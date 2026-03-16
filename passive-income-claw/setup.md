@@ -27,7 +27,7 @@ node {baseDir}/bin/earn-api.ts positions --type flexible
 node {baseDir}/bin/earn-api.ts positions --type locked
 ```
 
-Use **Binance Spot skill** to get current prices for USDT valuation of each asset. Filter out dust (< 1 USDT).
+Use **Binance Spot skill** to get current prices for USDT valuation of each asset. Filter out dust (< 10 USDT).
 
 ## Step 3: Set Defaults (don't ask questions, calculate)
 
