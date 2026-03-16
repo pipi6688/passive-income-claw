@@ -39,27 +39,27 @@ node {baseDir}/bin/earn-api.ts list-locked --asset USDT
 # ... etc for each held asset
 ```
 
-For borrow-to-earn, **only scan stablecoins and major coins** (small altcoins too volatile, spread gets eaten by price swings):
+For borrow-to-earn (only if `margin-borrow` in `allowed_operations`):
 
 ```bash
-# Only if margin-borrow in allowed_operations
+# Step 1: Get ALL borrowable assets (one call)
+node {baseDir}/bin/margin-api.ts asset-info --asset ALL
+# Returns which assets are borrowable on Binance margin
 
-# Step 1: Get the top coins by market cap using Market Ranking skill
-# Use the ranking to identify stablecoins + top 20 market cap coins
+# Step 2: Get borrow rates for all borrowable assets (one call)
+node {baseDir}/bin/margin-api.ts interest-rate --assets <all borrowable, comma-separated>
 
-# Step 2: For each stablecoin and major coin, fetch earn products
-# Example (actual list comes from Market Ranking):
-node {baseDir}/bin/earn-api.ts list-flexible --asset USDT
-node {baseDir}/bin/earn-api.ts list-flexible --asset USDC
-node {baseDir}/bin/earn-api.ts list-locked --asset USDT
-# ... etc for each stablecoin and major coin identified
-
-# Step 3: Borrow rates
-node {baseDir}/bin/margin-api.ts interest-rate --assets <comma-separated stablecoins + majors>
+# Step 3: Get margin account health
 node {baseDir}/bin/margin-api.ts account
+
+# Step 4: Only fetch earn products for assets where earn APY could exceed borrow rate
+# (skip assets with very high borrow rates — they won't be profitable)
+node {baseDir}/bin/earn-api.ts list-flexible --asset <profitable-asset-1>
+node {baseDir}/bin/earn-api.ts list-locked --asset <profitable-asset-1>
+# ... etc
 ```
 
-**Do NOT scan altcoins/meme coins for borrow-to-earn.** Price volatility makes the spread meaningless. Use **Market Ranking skill** to dynamically determine which coins qualify as "major" — don't hardcode a list.
+**No hardcoded coin lists or category labels.** High-volatility altcoins naturally have higher borrow rates → lower or negative net yield → scored low or skipped. The math does the filtering.
 
 ### 2. Generate Candidate Strategies
 
@@ -90,15 +90,7 @@ node {baseDir}/bin/margin-api.ts account
 For each candidate, compute a composite score:
 
 ```
-Asset tier (by market cap and stability, not hardcoded list):
-  stablecoin → +1.0
-  major (top 20 by market cap) → +0.5
-  other → +0.0
-
-To determine asset tier, use **Token Details skill** to check:
-- If the token is a stablecoin (pegged to fiat) → stablecoin tier
-- If the token is in the top 20 by market cap → major tier
-- Otherwise → other
+No asset tier labels needed. The score is purely data-driven:
 
 score = net_yield
         + asset_tier_bonus

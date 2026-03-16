@@ -5,16 +5,30 @@ import { signedRequest, parseArgs, die, out } from "./lib.ts";
 const commands: Record<string, (args: Record<string, string | true>) => Promise<void>> = {
   "asset-info": async (args) => {
     if (typeof args.asset !== "string") die("Missing --asset");
-    const data: any[] = await signedRequest("GET", "/sapi/v1/margin/allAssets", { asset: args.asset });
-    const found = data.find((a) => a.assetName === args.asset);
-    if (!found) die(`Asset ${args.asset} not found in margin assets`);
-    out({
-      asset: found.assetName,
-      borrowable: found.isBorrowable,
-      mortgageable: found.isMortgageable,
-      minBorrow: found.userMinBorrow,
-      minRepay: found.userMinRepay,
-    });
+    const data: any[] = await signedRequest("GET", "/sapi/v1/margin/allAssets", {});
+    if (args.asset === "ALL") {
+      // Return all borrowable assets
+      const borrowable = data
+        .filter((a) => a.isBorrowable)
+        .map((a) => ({
+          asset: a.assetName,
+          borrowable: a.isBorrowable,
+          mortgageable: a.isMortgageable,
+          minBorrow: a.userMinBorrow,
+          minRepay: a.userMinRepay,
+        }));
+      out({ count: borrowable.length, assets: borrowable });
+    } else {
+      const found = data.find((a) => a.assetName === args.asset);
+      if (!found) die(`Asset ${args.asset} not found in margin assets`);
+      out({
+        asset: found.assetName,
+        borrowable: found.isBorrowable,
+        mortgageable: found.isMortgageable,
+        minBorrow: found.userMinBorrow,
+        minRepay: found.userMinRepay,
+      });
+    }
   },
 
   "max-borrowable": async (args) => {
