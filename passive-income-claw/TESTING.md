@@ -6,8 +6,8 @@
 |-------|------|------|:---:|------|
 | 0 | 自动化单元测试（纯函数） | `node --test` | ❌ | ✅ 55/55 pass |
 | ~~1.1~~ | ~~convert.ts~~ | ~~已删除，用 Binance Spot skill~~ | - | - |
-| 1.2 | earn-api.ts CLI | 手动命令行 | ❌ 需 API Key | ⬜ 待测 |
-| 1.3 | margin-api.ts CLI | 手动命令行 | ❌ 需 API Key + Margin 权限 | ⬜ 待测 |
+| 1.2 | earn-api.ts CLI | 手动命令行 | ❌ 需 API Key | ✅ 5/5 pass |
+| 1.3 | margin-api.ts CLI | 手动命令行 | ❌ 需 API Key + Margin 权限 | ✅ 6/6 pass |
 | 1.4 | profile.ts CLI | 手动命令行 | ❌ | ✅ 5/5 pass |
 | 1.5 | auth-check.ts CLI | 手动命令行 | ❌ | ✅ 5/5 pass |
 | 1.6 | snapshot.ts CLI | 手动命令行 | ❌ | ✅ 5/5 pass |
@@ -202,8 +202,8 @@ cat ~/passive-income-claw/execution-log.md
 - [x] auth-check.ts — 通过、超限、白名单、操作类型、无效金额 ✅
 - [x] snapshot.ts — 读、写、再读、无变化diff、有变化diff ✅
 - [x] log.ts — 成功记录、失败不加total、recent、文件格式 ✅
-- [ ] earn-api.ts — 需要 API Key，在 OpenClaw 配好 key 后测
-- [ ] margin-api.ts — 需要 API Key + Margin 权限，在 OpenClaw 配好 key 后测
+- [x] earn-api.ts — list-flexible、account、balance、缺参数、无效命令 ✅
+- [x] margin-api.ts — asset-info、max-borrowable、interest-rate、account、history、缺参数 ✅
 - [x] 错误情况输出 JSON 到 stderr，exit code 非零 ✅
 - [x] positional 和 --flag 两种参数写法都能用 ✅
 

@@ -6,7 +6,7 @@ Trigger: user wants to participate in an earn opportunity but doesn't hold the r
 
 Determine:
 - **Target earn product**: name, required asset, APY
-- **User's current holdings**: from profile + Binance Spot balance
+- **User's current holdings**: from profile + `node {baseDir}/bin/earn-api.ts balance`
 - **Gap**: which asset is needed
 
 ## Step 2: Check Feasibility

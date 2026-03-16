@@ -19,7 +19,7 @@ This skill includes TypeScript scripts in `{baseDir}/bin/` for all deterministic
 
 | Script | Purpose |
 |--------|---------|
-| `bin/earn-api.ts` | Binance Earn API client (Simple Earn 产品查询/申购/赎回) |
+| `bin/earn-api.ts` | Binance Earn API + **账户资产明细查询** (`balance` 命令) |
 | `bin/margin-api.ts` | Binance Cross Margin API client (借贷、还款、账户状态、利率) |
 | `bin/profile.ts` | User profile read/write/daily-reset |
 | `bin/auth-check.ts` | 5-step authorization validation |
@@ -30,13 +30,14 @@ This skill includes TypeScript scripts in `{baseDir}/bin/` for all deterministic
 
 | Skill | 用途 |
 |-------|------|
-| **Binance Spot** | 账户余额查询、行情价格查询、币种换算 |
+| **Binance Spot** | 行情价格查询、币种换算（**不要用 Spot 查余额，它只返回总额**） |
 | **Market Ranking** | 市场热度、涨跌幅排行（扫描时参考） |
 | **Trading Signals** | 买卖信号（扫描时参考） |
 | **Token Details** | Token 基本信息、价格、市值 |
 
-**账户余额明细用 `earn-api.ts balance`**（Spot skill 只返回总额，不返回资产明细）。
-**价格查询和币种换算用 Binance Spot skill。**
+**查账户资产明细 → `node {baseDir}/bin/earn-api.ts balance`（返回每个资产的 free/locked/total）。**
+**查价格/行情 → Binance Spot skill。**
+**不要用 Spot skill 查余额 — 它只返回 BTC 总额，没有资产明细。**
 
 All scripts output JSON to stdout (including `profile.ts get` and `set`). Errors go to stderr as JSON with non-zero exit code. All timestamps use UTC.
 

@@ -26,8 +26,8 @@ If target product cannot be determined, show the most recent pushed candidates f
 
 **If amount is not specified**, suggest one instead of asking:
 1. Read `single_amount_limit` from profile
-2. Query available balance for the asset (via Spot skill)
-3. Suggest: min(single_amount_limit, available_balance), rounded down
+2. Query available balance: `node {baseDir}/bin/earn-api.ts balance`
+3. Suggest: min(single_amount_limit, available_balance for that asset), rounded down
 4. Example: "I'll subscribe 500 USDT (your single op limit). OK?"
 
 ### Amount Conversion

@@ -34,7 +34,8 @@ node {baseDir}/../bin/earn-api.ts positions --type flexible [--asset BNB]
 node {baseDir}/../bin/earn-api.ts positions --type locked   [--asset USDT]
 node {baseDir}/../bin/earn-api.ts account
 
-# For spot balance and price queries, use the Binance Spot skill (not this script)
+# For spot balance breakdown: node {baseDir}/../bin/earn-api.ts balance
+# For price queries: use the Binance Spot skill
 ```
 
 All commands output JSON to stdout. On error, exit code is non-zero and error JSON is written to stderr.
