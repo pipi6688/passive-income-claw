@@ -20,9 +20,15 @@ Resets `today_executed_amount` if the date has changed. Safe to call multiple ti
 Extract from user message:
 - Operation type: subscribe / redeem
 - Target product: name or number (matched against last push or snapshot)
-- Amount: user specifies in USDT equivalent; ask if not specified
+- Amount: user specifies in USDT equivalent
 
 If target product cannot be determined, show the most recent pushed candidates for the user to choose.
+
+**If amount is not specified**, suggest one instead of asking:
+1. Read `single_amount_limit` from profile
+2. Query available balance for the asset (via Spot skill)
+3. Suggest: min(single_amount_limit, available_balance), rounded down
+4. Example: "I'll subscribe 500 USDT (your single op limit). OK?"
 
 ### Amount Conversion
 

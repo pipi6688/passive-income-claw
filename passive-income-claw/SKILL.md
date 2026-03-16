@@ -1,5 +1,6 @@
 ---
 name: passive-income-claw
+version: 0.1.0
 description: |
   Binance passive income AI assistant. Automatically scans Binance earn opportunities,
   pushes matching opportunities based on user preferences, and executes subscriptions
