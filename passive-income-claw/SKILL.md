@@ -19,7 +19,7 @@ This skill includes TypeScript scripts in `{baseDir}/bin/` for all deterministic
 
 | Script | Purpose |
 |--------|---------|
-| `bin/earn-api.ts` | Binance Earn API client (signing, HTTP, error handling built in) |
+| `bin/earn-api.ts` | Binance Earn API client + spot balance query |
 | `bin/margin-api.ts` | Binance Cross Margin API client (borrow, repay, account, interest rates) |
 | `bin/profile.ts` | User profile read/write/daily-reset |
 | `bin/auth-check.ts` | 5-step authorization validation |
@@ -42,6 +42,7 @@ All scripts output JSON to stdout (including `profile.ts get` and `set`). Errors
 
 **User asks about opportunities** ("what's available", "recommend something for me"):
 → Load user profile: `node {baseDir}/bin/profile.ts dump`
+→ Query holdings: `node {baseDir}/bin/earn-api.ts balance`
 → Fetch products: `node {baseDir}/bin/earn-api.ts list-flexible` and `list-locked`
 → Output full recommendation:
   1. Profile summary (current preferences and authorization limits)

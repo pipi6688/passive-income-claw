@@ -26,7 +26,10 @@ node {baseDir}/bin/margin-api.ts account
 Query three things in parallel, don't ask the user anything:
 
 ### 2a. Spot balance (holdings)
-Use the Binance Spot skill to query account balance. Filter out dust (< 1 USDT equivalent).
+```bash
+node {baseDir}/bin/earn-api.ts balance
+```
+Returns all assets with non-zero balance. Filter out dust (< 1 USDT equivalent) using `node {baseDir}/bin/convert.ts` to estimate USDT value for each asset.
 
 ### 2b. Existing earn positions
 ```bash
