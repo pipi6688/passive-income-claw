@@ -26,8 +26,10 @@ node {baseDir}/bin/margin-api.ts account
 Query three things in parallel, don't ask the user anything:
 
 ### 2a. Spot balance (holdings)
-Use the **Binance Spot skill** to query account balance. It returns all assets with balances.
-Filter out dust (< 1 USDT equivalent) — use the **Binance Spot skill** to get current prices for USDT conversion.
+```bash
+node {baseDir}/bin/earn-api.ts balance
+```
+Returns per-asset breakdown (free, locked, total) for all non-zero assets. Use **Binance Spot skill** to get current prices and filter out dust (< 1 USDT equivalent).
 
 ### 2b. Existing earn positions
 ```bash

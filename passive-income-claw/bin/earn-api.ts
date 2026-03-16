@@ -64,6 +64,19 @@ const commands: Record<string, (args: Record<string, string | true>) => Promise<
   account: async () => {
     out(await signedRequest("GET", "/sapi/v1/simple-earn/account"));
   },
+
+  balance: async () => {
+    const data = await signedRequest("GET", "/api/v3/account");
+    const assets = (data.balances || [])
+      .filter((b: any) => parseFloat(b.free) > 0 || parseFloat(b.locked) > 0)
+      .map((b: any) => ({
+        asset: b.asset,
+        free: b.free,
+        locked: b.locked,
+        total: (parseFloat(b.free) + parseFloat(b.locked)).toString(),
+      }));
+    out({ assets });
+  },
 };
 
 import { main } from "./lib.ts";

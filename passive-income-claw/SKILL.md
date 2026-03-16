@@ -35,8 +35,8 @@ This skill includes TypeScript scripts in `{baseDir}/bin/` for all deterministic
 | **Trading Signals** | 买卖信号（扫描时参考） |
 | **Token Details** | Token 基本信息、价格、市值 |
 
-**不要用 earn-api.ts 查余额或价格 — 用 Binance Spot skill。**
-**不要自己写币种换算 — 用 Binance Spot skill 查行情价格。**
+**账户余额明细用 `earn-api.ts balance`**（Spot skill 只返回总额，不返回资产明细）。
+**价格查询和币种换算用 Binance Spot skill。**
 
 All scripts output JSON to stdout (including `profile.ts get` and `set`). Errors go to stderr as JSON with non-zero exit code. All timestamps use UTC.
 
@@ -53,7 +53,7 @@ All scripts output JSON to stdout (including `profile.ts get` and `set`). Errors
 
 **User asks about opportunities** ("what's available", "recommend something for me"):
 → Load user profile: `node {baseDir}/bin/profile.ts dump`
-→ Query holdings: use **Binance Spot skill** to get account balance
+→ Query holdings: `node {baseDir}/bin/earn-api.ts balance`
 → Fetch products: `node {baseDir}/bin/earn-api.ts list-flexible` and `list-locked`
 → Output full recommendation:
   1. Profile summary (current preferences and authorization limits)
