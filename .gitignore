@@ -1,2 +1,13 @@
 .DS_Store
 node_modules/
+passive-income-claw-dist/
+
+# Secrets - NEVER commit
+.env
+.env.local
+*.key
+*.secret
+openclaw.json
+
+# Keep the example template
+!.env.example
