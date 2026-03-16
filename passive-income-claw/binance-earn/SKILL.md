@@ -29,11 +29,12 @@ node {baseDir}/../bin/earn-api.ts redeem-flexible --productId BNB001 --amount 10
 node {baseDir}/../bin/earn-api.ts redeem-flexible --productId BNB001 --all
 node {baseDir}/../bin/earn-api.ts redeem-locked   --positionId 12345
 
-# Query positions, account & spot balance
+# Query positions & earn account
 node {baseDir}/../bin/earn-api.ts positions --type flexible [--asset BNB]
 node {baseDir}/../bin/earn-api.ts positions --type locked   [--asset USDT]
 node {baseDir}/../bin/earn-api.ts account
-node {baseDir}/../bin/earn-api.ts balance
+
+# For spot balance and price queries, use the Binance Spot skill (not this script)
 ```
 
 All commands output JSON to stdout. On error, exit code is non-zero and error JSON is written to stderr.

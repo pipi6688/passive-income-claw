@@ -126,7 +126,7 @@ node {baseDir}/bin/profile.ts get confirmation_mode
 - **`auto`** → for each pushed opportunity, trigger the execution flow (`{baseDir}/execute.md`):
   1. Determine amount: use product's `minPurchaseAmount` or derive from `single_amount_limit`
   2. Run full authorization check via `auth-check.ts` (auto mode does NOT skip any check)
-  3. Convert amount if needed via `convert.ts`
+  3. Convert amount if needed via **Binance Spot skill** (price query)
   4. Execute via `earn-api.ts`
   5. Log result via `log.ts`
   6. If any execution fails, notify and continue to next opportunity

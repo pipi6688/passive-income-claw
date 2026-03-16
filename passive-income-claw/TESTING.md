@@ -5,7 +5,7 @@
 | Phase | 类型 | 方式 | 需要 OpenClaw | 状态 |
 |-------|------|------|:---:|------|
 | 0 | 自动化单元测试（纯函数） | `node --test` | ❌ | ✅ 55/55 pass |
-| 1.1 | convert.ts CLI | 手动命令行 | ❌ | ✅ 4/4 pass |
+| ~~1.1~~ | ~~convert.ts~~ | ~~已删除，用 Binance Spot skill~~ | - | - |
 | 1.2 | earn-api.ts CLI | 手动命令行 | ❌ 需 API Key | ⬜ 待测 |
 | 1.3 | margin-api.ts CLI | 手动命令行 | ❌ 需 API Key + Margin 权限 | ⬜ 待测 |
 | 1.4 | profile.ts CLI | 手动命令行 | ❌ | ✅ 5/5 pass |
@@ -55,26 +55,6 @@ rm -rf ~/passive-income-claw
 ```
 
 > 推荐用 Testnet：改 `bin/lib.ts` 第 8 行为 `https://testnet.binance.vision`，测完改回。
-
-### 1.1 convert.ts — 币种换算（不需要 API Key）
-
-```bash
-# ✅ 基本换算
-node bin/convert.ts 500 USDT BNB
-# 期望: {"amount": <非零数>, "asset": "BNB", "rate": <当前价>, ...}
-
-# ✅ 同币种
-node bin/convert.ts 100 USDT USDT
-# 期望: {"amount": 100, "asset": "USDT", "rate": 1, "source": "identity"}
-
-# ✅ 不存在的币对
-node bin/convert.ts 100 USDT FAKECOIN
-# 期望: stderr {"error": "No trading pair found for USDT/FAKECOIN"}，exit code 1
-
-# ✅ 缺参数
-node bin/convert.ts
-# 期望: stderr {"error": ...}
-```
 
 ### 1.2 earn-api.ts — Earn API 客户端（需要 API Key）
 
@@ -217,7 +197,7 @@ cat ~/passive-income-claw/execution-log.md
 
 ### Phase 1 完成标志
 
-- [x] convert.ts — 换算、同币种、错误币对、缺参数 ✅
+- ~~convert.ts~~ — 已删除，用 Binance Spot skill
 - [x] profile.ts — dump、get、set、positional args、reset-daily ✅
 - [x] auth-check.ts — 通过、超限、白名单、操作类型、无效金额 ✅
 - [x] snapshot.ts — 读、写、再读、无变化diff、有变化diff ✅
@@ -317,7 +297,7 @@ openclaw agent --message "帮我买第 1 个，100 USDT"
 验证点：
 - [ ] 解析出产品和金额
 - [ ] 调用了 `auth-check.ts`
-- [ ] 如果资产不是 USDT，调用了 `convert.ts` 换算
+- [ ] 如果资产不是 USDT，用 Binance Spot skill 查价格换算
 - [ ] 展示确认摘要，等你说 "yes"
 - [ ] 你回复 "yes" 后调用 `earn-api.ts subscribe-*`
 - [ ] 调用 `log.ts append` 记录

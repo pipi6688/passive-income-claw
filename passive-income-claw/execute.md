@@ -34,10 +34,7 @@ If target product cannot be determined, show the most recent pushed candidates f
 
 When the product asset is not USDT, convert before calling the API:
 
-```bash
-node {baseDir}/bin/convert.ts 500 USDT BNB
-# → {"amount": 0.83, "asset": "BNB", "rate": 602.41, ...}
-```
+Use the **Binance Spot skill** to get the current price for the trading pair (e.g. BNBUSDT), then calculate the asset amount: `amount_in_asset = usdt_amount / price`.
 
 Use the USDT amount for authorization checks. Use the converted asset amount for the API call.
 Show both in confirmation: "500 USDT ≈ 0.83 BNB at current price"
